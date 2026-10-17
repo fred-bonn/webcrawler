@@ -1,5 +1,5 @@
 from urllib.parse import urlsplit, urljoin
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 def normalize_url(url: str) -> str:
     parsed_url = urlsplit(url)
@@ -21,16 +21,28 @@ def get_urls_from_html(html: str, base_url) -> list[str]:
     soup = BeautifulSoup(html, "html.parser")
     urls = []
     for a_tag in soup.find_all("a", href=True):
+        if not isinstance(a_tag, Tag):
+            continue
         href = a_tag["href"]
-        urljoined = urljoin(base_url, href)
-        urls.append(urljoined)
-    return urls + get_images_from_html(html, base_url)
+        if isinstance(href, str) and href:
+            try:
+                urljoined = urljoin(base_url, href)
+                urls.append(urljoined)
+            except Exception as e:
+                print(f"{str(e)}: {href}")
+    return urls
 
 def get_images_from_html(html: str, base_url: str) -> list[str]:
     soup = BeautifulSoup(html, "html.parser")
     image_urls = []
     for img_tag in soup.find_all("img", src=True):
+        if not isinstance(img_tag, Tag):
+            continue
         src = img_tag["src"]
-        urljoined = urljoin(base_url, src)
-        image_urls.append(urljoined)
+        if isinstance(src, str) and src:
+            try:
+                urljoined = urljoin(base_url, src)
+                image_urls.append(urljoined)
+            except Exception as e:
+                print(f"{str(e)}: {src}")
     return image_urls
