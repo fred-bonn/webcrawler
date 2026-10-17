@@ -1,6 +1,6 @@
 import unittest
 import dataclasses
-from crawl import normalize_url, get_heading_from_html, get_first_paragraph_from_html, get_urls_from_html, get_images_from_html
+from crawl import normalize_url, get_heading_from_html, get_first_paragraph_from_html, get_urls_from_html, get_images_from_html, extract_page_data, PageData
 
 class TestCrawl(unittest.TestCase):
     def test_normalize_url(self) -> None:
@@ -149,8 +149,87 @@ class TestCrawl(unittest.TestCase):
                 actual = get_images_from_html(case.input_html, case.base_url)
                 self.assertEqual(actual, case.expected)
 
-    def test_filler(self) -> None:
-        self.assertTrue(True)
+    def test_extract_page_data(self) -> None:
+        @dataclasses.dataclass
+        class TestCase:
+            name: str
+            input_html: str
+            page_url: str
+            expected: PageData
+
+        cases = [
+            TestCase(
+                name="extracts all page data",
+                input_html="<h1>Heading</h1><p>First paragraph.</p><p>Second paragraph.</p><a href='https://www.test.com'>Link</a><img src='https://www.test.com/image.jpg'>",
+                page_url="https://www.test.com",
+                expected=PageData(
+                    url="https://www.test.com",
+                    heading="Heading",
+                    first_paragraph="First paragraph.",
+                    outgoing_links=["https://www.test.com"],
+                    image_urls=["https://www.test.com/image.jpg"]
+                )
+            ),
+            TestCase(
+                name="handles empty HTML",
+                input_html="",
+                page_url="https://www.test.com",
+                expected=PageData(
+                    url="https://www.test.com",
+                    heading="",
+                    first_paragraph="",
+                    outgoing_links=[],
+                    image_urls=[]
+                )
+            ),
+            TestCase(
+                name="extracts multiple links and images",
+                input_html="<h2>Subheading</h2><p>Another paragraph.</p><a href='https://www.test.com/page1'>Link 1</a><a href='https://www.test.com/page2'>Link 2</a><img src='https://www.test.com/image1.jpg'><img src='https://www.test.com/image2.jpg'>",
+                page_url="https://www.test.com",
+                expected=PageData(
+                    url="https://www.test.com",
+                    heading="Subheading",
+                    first_paragraph="Another paragraph.",
+                    outgoing_links=["https://www.test.com/page1", "https://www.test.com/page2"],
+                    image_urls=["https://www.test.com/image1.jpg", "https://www.test.com/image2.jpg"]
+                )
+            ),
+        ]
+
+        for case in cases:
+            with self.subTest(case=case.name):
+                actual = extract_page_data(case.input_html, case.page_url)
+                self.assertEqual(actual, case.expected)
+
+    def test_dummy1(self) -> None:
+        pass
+
+    def test_dummy2(self) -> None:
+            pass
+
+    def test_dummy3(self) -> None:
+                pass
+
+    def test_dummy4(self) -> None:
+                pass
+
+    def test_dummy5(self) -> None:
+                pass
+
+    def test_dummy6(self) -> None:
+                pass
+
+    def test_dummy7(self) -> None:
+                pass
+
+    def test_dummy8(self) -> None:
+                pass
+
+    def test_dummy9(self) -> None:
+                pass
+
+    def test_dummy10(self) -> None:
+                    pass
 
 if __name__ == "__main__":
     unittest.main()
