@@ -1,6 +1,8 @@
 from urllib.parse import urlsplit, urljoin
-from bs4 import BeautifulSoup, Tag
 from typing import TypedDict
+
+import requests
+from bs4 import BeautifulSoup, Tag
 
 
 class PageData(TypedDict):
@@ -64,3 +66,18 @@ def extract_page_data(html: str, page_url: str) -> PageData:
         outgoing_links=get_urls_from_html(html, page_url),
         image_urls=get_images_from_html(html, page_url)
     )
+
+def get_html(url: str) -> str:
+    try:
+        response = requests.get(url, headers={"User-Agent": "BootCrawler/1.0"})
+    except Exception as e:
+        raise Exception(f"network error while fetching {url}: {e}")
+
+    if response.status_code >= 400:
+        raise Exception(f"HTTP error: {response.status_code} {response.reason}")
+
+    content_type = response.headers.get("content-type", "")
+    if "text/html" not in content_type:
+        raise Exception(f"non-HTML response: {content_type}")
+
+    return response.text
