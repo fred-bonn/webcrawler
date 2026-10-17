@@ -2,6 +2,14 @@ from urllib.parse import urlsplit, urljoin
 from bs4 import BeautifulSoup, Tag
 from typing import TypedDict
 
+
+class PageData(TypedDict):
+    url: str
+    heading: str
+    first_paragraph: str
+    outgoing_links: list[str]
+    image_urls: list[str]
+
 def normalize_url(url: str) -> str:
     parsed_url = urlsplit(url)
     full_path = f"{parsed_url.netloc}{parsed_url.path}"
@@ -47,13 +55,6 @@ def get_images_from_html(html: str, base_url: str) -> list[str]:
             except Exception as e:
                 print(f"{str(e)}: {src}")
     return image_urls
-
-class PageData(TypedDict):
-    url: str
-    heading: str
-    first_paragraph: str
-    outgoing_links: list[str]
-    image_urls: list[str]
 
 def extract_page_data(html: str, page_url: str) -> PageData:
     return PageData(
