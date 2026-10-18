@@ -25,6 +25,13 @@ async def main():
     max_concurrency = int(args[2])
     max_pages = int(args[3])
 
+    if max_concurrency <= 0:
+        print("max_concurrency must be a positive integer")
+        sys.exit(1)
+    if max_pages <= 0:
+        print("max_pages must be a positive integer")
+        sys.exit(1)
+
     print(f"starting crawl of: {base_url}")
     print(f"max_concurrency: {max_concurrency}, max_pages: {max_pages}")
 
