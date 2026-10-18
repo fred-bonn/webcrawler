@@ -135,8 +135,6 @@ class AsyncCrawler:
         if not await self.add_page_visit(normalized_url):
             return
 
-        print(f"crawling page: {normalized_url}")
-
         async with self.semaphore:
             html = await self.get_html(current_url)
             if not html:
