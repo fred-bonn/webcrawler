@@ -16,4 +16,4 @@ For example:
 python main.py https://example.com 5 100
 ```
 
-The URL should include its scheme, such as `https://`. Use positive whole numbers for both limits. The crawler writes `report.json` in the current directory as a JSON array, with each page containing its URL, heading, first paragraph, outgoing links, and image URLs. Missing headings or paragraphs are represented as empty strings.
+The URL should include its scheme, such as `https://`, and both `max_concurrency` and `max_pages` must be positive whole numbers. The crawler writes the crawled pages to `report.json` in the current directory as a JSON array.
