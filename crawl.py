@@ -74,7 +74,7 @@ def extract_page_data(html: str, page_url: str) -> PageData:
     )
 
 class AsyncCrawler:
-    def __init__(self, base_url: str, max_concurrency: int = 10):
+    def __init__(self, base_url: str, max_concurrency: int = 10, max_pages: int = 100):
         self.base_url = base_url
         self.base_domain = urlsplit(base_url).netloc
         self.page_data: dict[str, PageData] = {}
@@ -82,7 +82,10 @@ class AsyncCrawler:
         self.lock = asyncio.Lock()
         self.max_concurrency = max_concurrency
         self.semaphore = asyncio.Semaphore(max_concurrency)
-        self.session = None
+        self.session: aiohttp.ClientSession | None
+        self.max_pages = max_pages
+        self.should_stop = False
+        self.all_tasks: set[asyncio.Task] = set()
 
     async def __aenter__(self):
         self.session = aiohttp.ClientSession()
@@ -93,31 +96,41 @@ class AsyncCrawler:
 
     async def add_page_visit(self, normalized_url: str) -> bool:
         async with self.lock:
+            if self.should_stop:
+                return False
             if normalized_url in self.visited:
                 return False
+            if len(self.visited) >= self.max_pages:
+                self.should_stop = True
+                print("Reached maximum number of pages to crawl.")
+                return False
             self.visited.add(normalized_url)
+
         return True
 
-    async def get_html(self, url: str) -> str:
+    async def get_html(self, url: str) -> str | None:
+        if not self.session:
+            return None
         try:
             async with self.session.get(url, headers={"User-Agent": "BootCrawler/1.0"}) as response:
                 if response.status >= 400:
-                    print(f"HTTP error while fetching {url}: {response.status} {response.reason}")
-                    return ""
+                    print(f"Error: HTTP {response.status} error while fetching {url}")
+                    return None
                 content_type = response.headers.get("content-type", "")
                 if "text/html" not in content_type:
-                    print(f"non-HTML response while fetching {url}: {content_type}")
-                    return ""
+                    print(f"Error: Non-HTML content {content_type} while fetching {url}")
+                    return None
                 html = await response.text()
                 return html
         except Exception as e:
-            print(f"network error while fetching {url}: {e}")
-            return ""
+            print(f"Error: Failed to fetch {url}: {e}")
+            return None
 
     async def crawl_page(self, current_url: str) -> None:
-        if urlsplit(self.base_url).netloc != urlsplit(current_url).netloc:
+        if self.should_stop:
             return
-        
+        if urlsplit(current_url).netloc != self.base_domain:
+            return 
         normalized_url = normalize_url(current_url)
         if not await self.add_page_visit(normalized_url):
             return
@@ -133,17 +146,26 @@ class AsyncCrawler:
             async with self.lock:
                 self.page_data[normalized_url] = page_data
 
-        tasks = []
+        if self.should_stop:
+            return
+
+        tasks: list[asyncio.Task] = []
         for link in page_data["outgoing_links"]:
             task = asyncio.create_task(self.crawl_page(link))
             tasks.append(task)
+            task.add_done_callback(self.remove_task_callback)
+            self.all_tasks.add(task)
         if tasks:
             await asyncio.gather(*tasks)
+
+    def remove_task_callback(self, task: asyncio.Task) -> None:
+        self.all_tasks.discard(task)
+
 
     async def crawl(self) -> dict[str, PageData]:
         await self.crawl_page(self.base_url)
         return self.page_data
 
-async def crawl_site_async(base_url: str) -> dict[str, PageData]:
-    async with AsyncCrawler(base_url) as crawler:
+async def crawl_site_async(base_url: str, max_concurrency: int, max_pages: int) -> dict[str, PageData]:
+    async with AsyncCrawler(base_url, max_concurrency=max_concurrency, max_pages=max_pages) as crawler:
         return await crawler.crawl()
