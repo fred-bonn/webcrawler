@@ -1,5 +1,6 @@
 import sys
-from crawl import crawl_page
+import asyncio
+from crawl import crawl_site_async
 
 
 def main():
@@ -14,8 +15,7 @@ def main():
     base_url = args[0]
 
     print(f"starting crawl of: {base_url}")
-    pages = {}
-    crawl_page(base_url, page_data=pages)
+    pages = asyncio.run(crawl_site_async(base_url))
 
     print(f"crawl finished. pages found: {len(pages)}")
 
